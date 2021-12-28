@@ -2,11 +2,7 @@ import requests
 import json
 from tabulate import tabulate 
 
-
-#mydata = [("Khalid", 26), ("Salah", 23)]
 headers= ["Rank", "Name", "Team Name", "Total points spent","Last Minus", "Current GW", "All GWs"]
-
-
 
 session = requests.session()
 url = 'https://users.premierleague.com/accounts/login/'
