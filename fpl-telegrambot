@@ -1,0 +1,123 @@
+import requests
+import json
+import prettytable as pt
+import os
+import telebot
+from PIL import Image, ImageDraw, ImageFont
+
+
+myAPI = os.environ['botAPI'] 
+bot = telebot.TeleBot(myAPI)
+
+
+@bot.message_handler(commands=['hello'])
+def hello(message):
+  bot.reply_to(message, 'hi')
+
+gnid = ""
+messageM = ""
+
+def checkIfNumber(message):
+  global gnid
+  global messageM
+  # print(message)
+  messageM = message
+  request = message.text.split()
+  
+  if request[0] == 'safa3nh':
+    gnid = "safa3nh"
+    return True
+  else: 
+    if request[0] == '/safa3nh': 
+      gnid = "safa3nh"
+    elif request[0] == '/league': 
+      gnid = request[1]
+    elif  len(request) < 2 or request[0].lower() not in "league" or not request[1].isdigit():
+      bot.send_message(message.chat.id, "syntax is not correct")
+      return False
+    else:
+      gnid = request[1]
+      return True
+    
+@bot.message_handler(commands=['safa3nh'])
+@bot.message_handler(regexp="league ([1-9][0-9]{0,7}|9999999)")
+@bot.message_handler(func=checkIfNumber)
+def send_price(message):
+  global gnid
+  getAnalytics(gnid)
+  
+  bot.send_photo(message.chat.id, photo=open('table.png', 'rb'))
+
+
+
+def getAnalytics(message):
+  print('its running !!! and it\'s ' + message)
+  id = ""
+  if message == "safa3nh":
+    id = "897853"
+  else :
+    id = message
+
+  session = requests.session()
+  url = 'https://users.premierleague.com/accounts/login/'
+  payload = {
+  'password': os.environ['user-password'],
+  'login': os.environ['username'],
+  'redirect_uri': 'https://fantasy.premierleague.com/a/login',
+  'app': 'plfpl-web'
+  }
+  session.post(url, data=payload)
+  leagueid = id
+  currgw = 25
+  currgw += 1
+  response = session.get('https://fantasy.premierleague.com/api/leagues-classic/{0}/standings/'.format(leagueid))
+  print("\n")
+  parsed = json.loads(response.content)
+  results = parsed['standings']['results']
+  mydata = []
+  counter = 0
+  print(parsed)
+  for team in results:
+      teamid = str(team['entry'])
+      print (teamid)
+      if teamid != "8007849":
+          pointSpent = 0
+          print(counter)
+          for i in range(2, currgw):
+              ii = str(i)
+              response2 = session.get('https://fantasy.premierleague.com/api/entry/{0}/event/{1}/picks/'.format(teamid, ii))
+              parsed2 = json.loads(response2.content)
+              pointsgwspent = parsed2['entry_history']['event_transfers_cost']
+              print(f"ID: {teamid}   GameWeek: {ii}  => {pointsgwspent}")
+              pointSpent += pointsgwspent
+          print("___________________________________________________")
+          lastPointCost = pointsgwspent
+          mydata.append([str(team['rank']), team['player_name'],team['entry_name'], str(pointSpent),str(lastPointCost), str(team['event_total']), str(team['total'])])
+
+          counter = counter + 1
+      
+  
+  
+
+  table = pt.PrettyTable(["Rank", "Name", "Team Name", "Total points spent","Last Minus", "Current GW", "All GWs"])
+  table.align["Rank", "Name", "Team Name", "Total points spent","Last Minus", "Current GW", "All GWs"] = 'l'
+
+  counterR = 0
+  for r, n,tn,tps,lm,cg,ag in mydata:
+    table.add_row([r,n,tn,tps,lm,cg,ag ])
+    counterR = counterR + 1
+  text = table.get_string()
+  im = Image.new("RGB", (1100, int(63 + (18*counterR))), "white")
+  draw = ImageDraw.Draw(im)
+  font = ImageFont.truetype("./Monospace.ttf", 16)
+  draw.text((10, 10), text, font=font, fill="black")
+
+  im.show()
+  im.save("table.png")
+  
+  
+
+
+
+bot.polling()
+
