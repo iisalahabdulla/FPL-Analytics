@@ -68,15 +68,18 @@ def getAnalytics(message):
   }
   session.post(url, data=payload)
   leagueid = id
-  currgw = 25
-  currgw += 1
   response = session.get('https://fantasy.premierleague.com/api/leagues-classic/{0}/standings/'.format(leagueid))
   print("\n")
   parsed = json.loads(response.content)
   results = parsed['standings']['results']
+  fteam = results[0]['entry']
+  frstplayer = session.get('https://fantasy.premierleague.com/api/entry/{0}/history/'.format(fteam))
+  cgparsed = json.loads(frstplayer.content)
+  cgt = cgparsed['current'][-1]['event']
+  currgw = cgt
+  currgw += 1
   mydata = []
   counter = 0
-  print(parsed)
   for team in results:
       teamid = str(team['entry'])
       print (teamid)
