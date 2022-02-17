@@ -70,6 +70,9 @@ def getAnalytics(message):
   leagueid = id
   response = session.get('https://fantasy.premierleague.com/api/leagues-classic/{0}/standings/'.format(leagueid))
   print("\n")
+  playerElements = session.get('https://fantasy.premierleague.com/api/bootstrap-static/')
+  playerElemntsParsed = json.loads(playerElements.content)
+  players = playerElemntsParsed['elements']
   parsed = json.loads(response.content)
   results = parsed['standings']['results']
   fteam = results[0]['entry']
@@ -91,36 +94,40 @@ def getAnalytics(message):
               response2 = session.get('https://fantasy.premierleague.com/api/entry/{0}/event/{1}/picks/'.format(teamid, ii))
               parsed2 = json.loads(response2.content)
               pointsgwspent = parsed2['entry_history']['event_transfers_cost']
-              print(f"ID: {teamid}   GameWeek: {ii}  => {pointsgwspent}")
               pointSpent += pointsgwspent
-          print("___________________________________________________")
+              playerss = parsed2['picks']
+              if i == currgw-1:
+                for player in playerss:
+                  if player['is_captain'] == True:
+                    cpt = player['element']
+                  elif  player['is_vice_captain'] == True:
+                    vcpt = player['element']
+          for player in players:
+            if cpt == player['id']:
+              fsname = player['first_name']
+              scname = player['second_name']
+              cptName = f'{fsname[0]}. {scname}'
+            if vcpt == player['id']:
+              fsname = player['first_name']
+              scname = player['second_name']
+              vcptName = f'{fsname[0]}. {scname}'
           lastPointCost = pointsgwspent
-          mydata.append([str(team['rank']), team['player_name'],team['entry_name'], str(pointSpent),str(lastPointCost), str(team['event_total']), str(team['total'])])
-
+          mydata.append([str(team['rank']), team['player_name'],team['entry_name'], str(pointSpent),str(lastPointCost), str(team['event_total']), str(team['total']), cptName, vcptName])
           counter = counter + 1
-      
-  
-  
-
-  table = pt.PrettyTable(["Rank", "Name", "Team Name", "Total points spent","Last Minus", "Current GW", "All GWs"])
-  table.align["Rank", "Name", "Team Name", "Total points spent","Last Minus", "Current GW", "All GWs"] = 'l'
-
+  table = pt.PrettyTable(["Rank", "Name", "Team Name", "Total points spent","Last Minus", "Current GW", "All GWs", "Captain", "Vice Captain"])
+  table.align["Rank", "Name", "Team Name", "Total points spent","Last Minus", "Current GW", "All GWs", "Captain", "Vice Captain"] = 'c'
   counterR = 0
-  for r, n,tn,tps,lm,cg,ag in mydata:
-    table.add_row([r,n,tn,tps,lm,cg,ag ])
+  print(mydata)
+  for r,n,tn,tps,lm,cg,ag,cap,vcap in mydata:
+    table.add_row([r,n,tn,tps,lm,cg,ag,cap,vcap])
     counterR = counterR + 1
   text = table.get_string()
-  im = Image.new("RGB", (1100, int(63 + (18*counterR))), "white")
+  im = Image.new("RGB", (1500, int(63 + (18*counterR))), "white")
   draw = ImageDraw.Draw(im)
   font = ImageFont.truetype("./Monospace.ttf", 16)
   draw.text((10, 10), text, font=font, fill="black")
-
   im.show()
   im.save("table.png")
-  
-  
-
-
 
 bot.polling()
 
